@@ -12,15 +12,19 @@ RUN pip install -r requirements.txt
 # Add Java and validator
 RUN yum install java-11-amazon-corretto-headless -y
 RUN yum install wget -y
-RUN wget https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
+RUN wget https://github.com/hapifhir/org.hl7.fhir.core/releases/download/5.6.47/validator_cli.jar
 
 FROM base
 
 # COPY MAPPING FILES
-COPY ./mapping $LAMBDA_TASK_ROOT
+COPY ./mapping $LAMBDA_TASK_ROOT/mapping
+COPY ./logical $LAMBDA_TASK_ROOT/logical
 
-# COMPILE THE MAPPING FILES (Add more lines per file)
-RUN java -jar validator_cli.jar -ig ./mapping/mapping.map  -compile ./mapping/mapping.map -version 4.0 -output ./mapping/mapping.json
+
+# Pull the NPM Packages for the Items
+# Forces the validator to pre-download the items, doesn't do any actual processing
+RUN export output=$(java -jar validator_cli.jar -ig ./mapping/  -ig ./logical/ -version 4.0.1) \
+    && export output=''
 
 # COPY LAMBDA FILES
 COPY ./src/*.py $LAMBDA_TASK_ROOT

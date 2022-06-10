@@ -9,7 +9,7 @@ import logging
 
 logging.basicConfig()
 logger = logging.getLogger()
-logger.setLevel('info')
+logger.setLevel(logging.INFO)
 
 
 def get_session() -> Session:
@@ -30,8 +30,9 @@ def get_object(bucket:str, key:str) -> dict:
     
     try:
         response = client.get_object(Bucket=bucket, Key=key)
+        return response
     except ClientError as e:
-        logger.info('FAILED TO RETRIEVE OBJECT', e)
+        logger.info('FAILED TO RETRIEVE OBJECT')
         raise e
 
 def put_object(bucket:str, key:str, content:str):
@@ -45,7 +46,7 @@ def put_object(bucket:str, key:str, content:str):
     try:
         client.put_object(Bucket=bucket, Key=key, Body=content.encode())
     except ClientError as e:
-        logger.error('FAILED TO UPLOAD ITEM', e)
+        logger.error('FAILED TO UPLOAD ITEM')
         raise e
     
 def run(event, context):
@@ -55,7 +56,7 @@ def run(event, context):
     
     if 'Records' in event:
         for record in event['Records']:
-            s3_bucket = record['s3']['bucket']
+            s3_bucket = record['s3']['bucket']['name']
             s3_key = record['s3']['object']['key']
             
             response = get_object(s3_bucket, s3_key)
@@ -68,7 +69,7 @@ def run(event, context):
                     cda_file.write(content)
                 
                 # Run the Validator to transform from the mapping
-                command = f"java -jar validator_cli.jar /tmp/{file_name} -ouput /tmp/bundle.json -transfom ./mapping/mapping.map -version 4.0 -ig http://localhost/myig "
+                command = f"java -jar validator_cli.jar /tmp/{file_name} -ouput /tmp/bundle.json -transfom http://hl7.org/fhir/tutorial -ig ./logical -ig ./mapping -version 4.0.1"
                 
                 os.system(command)
                 
